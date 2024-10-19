@@ -1,0 +1,66 @@
+services:
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    ports:
+      - "1883:1883"  # MQTT port
+      - "9001:9001"  # WebSocket port (optional)
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf  # Path to mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data  # Data volume
+      - ./mosquitto/log:/mosquitto/log    # Log volume
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "test", "-m", "{\"message\": \"ping\"}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  influxdb:
+    image: influxdb:latest
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influxdb:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=demo
+      - DOCKER_INFLUXDB_INIT_PASSWORD=passphrase
+      - DOCKER_INFLUXDB_INIT_ORG=myorganization
+      - DOCKER_INFLUXDB_INIT_BUCKET=demo
+      - DOCKER_INFLUXDB_INIT_RETENTION=4w  # Retention period
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=mytoken
+    restart: unless-stopped
+    networks:
+      - app-network
+  
+  telegraf:
+    image: telegraf:latest
+    depends_on:
+      - mosquitto
+      - influxdb
+    volumes:
+      - ./telegraf:/etc/telegraf
+    networks:
+      - app-network
+
+  python3_8:
+    build:
+      context: ./python/3_8
+      dockerfile: Dockerfile
+
+  python3_10:
+    build:
+      context: ./python/3_10
+      dockerfile: Dockerfile
+      
+  python3_12:
+    build:
+      context: ./python/3_12
+      dockerfile: Dockerfile
+  
+
+networks:
+  app-network:
+    driver: bridge
