@@ -2,6 +2,7 @@ services:
 
   mosquitto:
     image: eclipse-mosquitto:latest
+    container_name: mosquitto
     ports:
       - "1883:1883"  # MQTT port
       - "9001:9001"  # WebSocket port (optional)
@@ -34,7 +35,7 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-  
+
   telegraf:
     image: telegraf:latest
     depends_on:
@@ -54,12 +55,13 @@ services:
     build:
       context: ./python/3_10
       dockerfile: Dockerfile
-      
+    networks:
+    - app-network
+
   python3_12:
     build:
       context: ./python/3_12
       dockerfile: Dockerfile
-  
 
 networks:
   app-network:
